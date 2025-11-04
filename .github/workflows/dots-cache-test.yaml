@@ -1,7 +1,6 @@
 name: Auto Flake Test, and Cache Push
 
 on:
-  schedule:
   workflow_dispatch:
 
 permissions:
