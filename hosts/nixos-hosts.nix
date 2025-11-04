@@ -94,5 +94,4 @@ in
     isInstall = true;
     isLaptop = true;
   };
-  vm = mkNixosConfiguration "vm" { isVm = true; };
 }
