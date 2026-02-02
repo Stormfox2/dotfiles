@@ -41,6 +41,12 @@ in
   config = {
     qnix.applications.shells = {
       packages = {
+        rvm = ''
+          cd ~/projects/qnix/qnix-client
+          nix flake update qnix-modules
+          nix build .#nixosConfigurations.QConfigVM.config.system.build.vm
+          ./result/bin/run-QConfigVM-vm
+        '';
         nr = # sh
           ''
             if [ "$#" -eq 0 ]; then

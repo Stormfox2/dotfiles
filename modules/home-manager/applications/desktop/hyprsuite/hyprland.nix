@@ -15,6 +15,49 @@ let
   default-app-uexec = app-name: (uexec (lib.getExe default-apps.${app-name}));
   rofi-cfg = config.qnix.applications.desktop.rofi;
   default-apps = config.qnix.applications.default;
+
+  special-workspace = pkgs.writeShellScriptBin "scratchpad-kitty" ''
+    set -eu
+
+    # Kitty sometimes ends up as class: kitty, but keeps initialClass: scratchpad.
+    if hyprctl clients | grep -qF -e "class: scratchpad" -e "initialClass: scratchpad"; then
+      hyprctl dispatch togglespecialworkspace scratch
+    else
+      kitty --class scratchpad & disown
+    fi
+  '';
+
+  hyprSpecial = pkgs.writeShellApplication {
+    name = "hypr-special";
+    runtimeInputs = [
+      pkgs.hyprland
+      pkgs.jq
+    ];
+    text = ''
+      set -eu
+
+      if [ "$#" -lt 4 ] || [ "$3" != "--" ]; then
+        echo "usage: hypr-special <specialName> <matchValue> -- <command> [args...]" >&2
+        exit 2
+      fi
+
+      ws="$1"
+      want="$2"
+      shift 3  # drop ws, want, --
+
+      exists="$(
+        hyprctl -j clients | jq -r --arg v "$want" '
+          any(.[]; (.class == $v) or (.initialClass == $v))
+        '
+      )"
+
+      if [ "$exists" != "true" ]; then
+        uwsm app -- "$@" >/dev/null 2>&1 &
+      fi
+
+      hyprctl dispatch togglespecialworkspace "$ws" >/dev/null
+    '';
+  };
 in
 {
   imports = [
@@ -33,6 +76,7 @@ in
     home.packages = with pkgs; [
       wl-clipboard
       hyprpolkitagent
+      hyprSpecial
     ];
 
     wayland.windowManager = {
@@ -46,6 +90,7 @@ in
           source = [
             "~/.config/hypr/monitors.conf"
             "~/.config/hypr/workspaces.conf"
+            "~/.config/hypr/windowrules.conf"
           ];
           exec = [
             "hyprctl switchxkblayout all 1"
@@ -70,18 +115,24 @@ in
           # Decoration settings: rounded corners and blur effect.
           decoration = {
             rounding = "10"; # Rounded corners (in pixels)
+            dim_special = "0.6";
             blur = {
               enabled = "true"; # Enable blur effect
               size = "10"; # Blur distance
               passes = "1"; # Number of blur passes
               new_optimizations = "on"; # Use optimized blur method
+              special = "true";
             };
             # (Optional: add drop shadow settings if desired)
           };
 
           # Animation settings: define custom animations using a bezier curve.
           animations = {
-            enabled = "yes"; # Enable animations
+            enabled = "true"; # Enable animations
+            workspace_wraparound = "true";
+            animation = [
+              "specialWorkspace, 1, 8, default, slidevert"
+            ];
           };
 
           cursor = {
@@ -107,6 +158,17 @@ in
 
           gestures = {
             workspace_swipe_forever = "true";
+            gestures = {
+              gesture = [
+                "4, horizontal, workspace" # Workspace switch with left/right
+                "4, up, scale: 1.5, fullscreen" # Fullscreen with up
+                "4, down, close" # Close on down
+                "2, pinch, resize" # Resize on 2fg
+                "2, pinch, mod: $mod, float" # Float on 2fg with mod
+
+              ];
+            };
+
           };
 
           # Miscellaneous settings: wallpaper, logos, and window swallowing.
@@ -158,7 +220,7 @@ in
           "$mod" = if !isVm then "super" else "ALT";
 
           bindl = [
-            ",switch:Lid Switch, ${uexec ''hyprlock''}" # Lock when lid closed.
+            ",switch:Lid Switch, ${uexec "hyprlock"}" # Lock when lid closed.
           ];
           bindm = [
             # Move window with Mouse + MOD
@@ -202,26 +264,28 @@ in
             #
 
             #Shell
-            "$mod, return, ${default-app-uexec ''terminal''}" # Start kitty normally
-            "$mod CTRL, return, ${default-app-uexec ''terminal'' + " --class floating"}" # Start kitty floating
+            "$mod, return, exec, hypr-special scratch scratchpad -- kitty --class scratchpad"
+
+            "$mod SHIFT, return, ${default-app-uexec "terminal"}" # Start kitty normally
+            "$mod CTRL, return, ${default-app-uexec "terminal" + " --class floating"}" # Start kitty floating
 
             #Browser
-            "$mod, code:47, ${default-app-uexec ''browser''} #;" # Start brave normally
-            "$mod CTRL, code:47, ${default-app-uexec ''browser'' + ''--private-window''} #;" # Start brave in private mode
+            "$mod, code:47, ${default-app-uexec "browser"} #;" # Start brave normally
+            "$mod CTRL, code:47, ${default-app-uexec "browser" + "--private-window"} #;" # Start brave in private mode
 
             # WOFI (ROFI)
             "$mod, code:25, ${uexec ''rofi -show drun -config ~/.config/rofi/launchers/type-${rofi-cfg.launcher.theme.type}/style-${rofi-cfg.launcher.theme.style}.rasi -run-command "uwsm app -- {cmd}"''} #w" # Program starter
 
             # Recording
-            "$mod, code:29, ${uexec ''obs''} #y" # Start obs
+            "$mod, code:29, exec, hypr-special recording obs -- 'obs' #y" # Start obs
 
             # General use
-            "$mod, code:40, ${default-app-uexec ''file-manager''} #d" # Filemanager
-            "$mod, code:57, ${uexec ''bitwarden-desktop''} #m" # Passwordmanager
-            "$mod, code:26, ${uexec ''obsidian''} #e" # Notes
+            "$mod, code:40, ${default-app-uexec "file-manager"} #d" # Filemanager
+            "$mod, code:57, exec, hypr-special secrets Bitwarden -- 'bitwarden' #m" # Passwordmanager
+            "$mod, code:26, exec, hypr-special notes obsidian -- 'obsidian' #e" # Notes
 
             # Screenshot
-            ", Print, ${uexec ''rofi -show drun -config ~/.config/rofi/applets/bin/screenshot.sh''}"
+            ", Print, ${uexec "rofi -show drun -config ~/.config/rofi/applets/bin/screenshot.sh"}"
 
             # audio/sound control
             ", xf86audioraisevolume, exec, pamixer -i 5 && dunstify -h int:value:'$(pamixer --get-volume)' -i ~/.config/dunst/assets/volume.svg -t 500 -r 2593 'Volume: $(pamixer --get-volume) %'"
@@ -317,47 +381,136 @@ in
             bindingLines
           );
 
+          # windowrule = [
+          #   ########################################
+          #   # 1) Modal / dialog sanity
+          #   ########################################
+          #
+          #   # Modal dialogs: float + center + dim + keep focus
+          #   ''
+          #     windowrule {
+          #       name = modal-dialogs
+          #       match:modal = true
+          #
+          #       float = on
+          #       center = on
+          #       dim_around = on
+          #       stay_focused = on
+          #     }
+          #   ''
+          #
+          #   # Common dialog titles (file pickers, auth prompts)
+          #   "windowrule = match:title ^(Open File|Save File|Choose File|File Upload|Open|Save As).*$, float on"
+          #   "windowrule = match:title ^(Authentication Required|Permission required).*$, float on, center on, stay_focused on"
+          #
+          #   ########################################
+          #   # 2) Pinentry / auth focus fixes
+          #   ########################################
+          #
+          #   "windowrule = match:class ^(pinentry-).*$, stay_focused on"
+          #   "windowrule = match:class ^(pinentry-).*$, float on, center on, dim_around on"
+          #
+          #   ########################################
+          #   # 3) Picture-in-Picture
+          #   ########################################
+          #
+          #   # Firefox PiP
+          #   ''
+          #     windowrule {
+          #       name = firefox-pip
+          #     match:class = ^(firefox)$
+          #     match:title = ^(Picture-in-Picture)$
+          #
+          #     float = on
+          #     pin = on
+          #     keep_aspect_ratio = on
+          #     no_blur = on
+          #     no_shadow = on
+          #     size = 30% 30%
+          #     move = (monitor_w-(window_w+24)) 24
+          #   }
+          # ''
+
+          # ########################################
+          # # 4) Utility windows that should float
+          # ########################################
+          #
+          # "windowrule = match:class ^(qalculate-gtk|org.gnome.Calculator)$, float on, center on, size 520 620"
+          # "windowrule = match:class ^(pavucontrol)$, float on, center on, size 900 650"
+          # "windowrule = match:class ^(blueman-manager|org.gnome.Bluetooth)$, float on, center on, size 900 650"
+          # "windowrule = match:class ^(nm-connection-editor)$, float on, center on, size 900 650"
+          #
+          # ########################################
+          # # 5) Steam quirks (optional)
+          # ########################################
+          #
+          # ''
+          #   windowrule {
+          #     name = steam-friends
+          #     match:class = ^(steam)$
+          #     match:title = ^(Friends List|Steam Friends List).*$
+          #
+          #     float = on
+          #     size = 420 900
+          #     move = (monitor_w-(window_w+24)) (monitor_h*0.12)
+          #     focus_on_activate = off
+          #   }
+          # ''
+          #
+          # ########################################
+          # # 6) QoL tags (optional) – example only
+          # ########################################
+          # # ''windowrule = match:class ^(footclient|kitty|Alacritty)$, tag +term''
+          # # ''windowrule = match:tag term, opacity 1.0 override 0.95 override 1.0 override''
+          #
+          ########################################
+          # 7) Security / privacy examples (optional)
+          ########################################
+          # ''windowrule = match:class ^(org.keepassxc.KeePassXC)$, no_screen_share on''
+          # ];
+
           #
           # Windowrules
           #
-          windowrulev2 = [
-            # Workspaces
-            "workspace 1, class:obsidian"
-            "workspace 1, class:jetbrains-idea"
-            "workspace 1, class:code-oss"
-
-            "workspace 2, class:kitty"
-
-            "workspace 3, class:brave-browser"
-            "workspace 3, class:chromium"
-
-            # 456 for personal use
-
-            "workspace 7, class:WebCord"
-
-            "workspace 8, class:Bitwarden"
-
-            "workspace 9, class:thunar"
-            "workspace 9, class:nemo"
-
-            "workspace 10, class:thunderbird"
-          ]
-          ++ (
-            let
-              floatingWindows = [
-                "class:floating"
-                "title:Open File"
-                "title:branchdialog"
-                "title:^(Media viewer)$"
-                "title:^(Transmission)$"
-                "title:^(Volume Control)$"
-                "title:^(Picture-in-Picture)$"
-                "title:^(Firefox — Sharing Indicator)$"
-                "class:flameshot"
-              ];
-            in
-            map (window: "float, ${window}") floatingWindows
-          );
+          # windowrulev2 = [
+          #   # Workspaces
+          #   "workspace 1, class:obsidian"
+          #   "workspace 1, class:jetbrains-idea"
+          #   "workspace 1, class:code-oss"
+          #
+          #   "workspace 2, class:kitty"
+          #
+          #   "workspace 3, class:brave-browser"
+          #   "workspace 3, class:chromium"
+          #
+          #   "workspace 5, class:qemu"
+          #   # 456 for personal use
+          #
+          #   "workspace 7, class:WebCord"
+          #
+          #   "workspace 8, class:Bitwarden"
+          #
+          #   "workspace 9, class:thunar"
+          #   "workspace 9, class:nemo"
+          #
+          #   "workspace 10, class:thunderbird"
+          # ]
+          # ++ (
+          #   let
+          #     floatingWindows = [
+          #       "class:floating"
+          #       "title:Open File"
+          #       "title:branchdialog"
+          #       "title:^(Media viewer)$"
+          #       "title:^(Transmission)$"
+          #       "title:^(Volume Control)$"
+          #       "title:^(Picture-in-Picture)$"
+          #       "title:^(Firefox — Sharing Indicator)$"
+          #       "class:flameshot"
+          #     ];
+          #   in
+          #   map (window: "float, ${window}") floatingWindows
+          # );
         };
       };
     };

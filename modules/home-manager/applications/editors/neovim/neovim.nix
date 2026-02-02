@@ -49,6 +49,26 @@ in
               formatOnSave = true;
               lightbulb.enable = true;
               lspkind.enable = true;
+
+              servers = {
+                nixd = lib.mkIf (dots != null) {
+                  enable = true;
+                  options = {
+                    nixos = {
+                      expr = ''(builtins.getFlake "${dots}").nixosConfigurations."QFrame13".options'';
+                    };
+                    home-manager = {
+                      expr = ''(builtins.getFlake "${dots}").homeConfigurations."QFrame13".options'';
+                    };
+                  };
+                };
+                pyright = {
+                  enable = true;
+                };
+                clangd = {
+                  enable = true;
+                };
+              };
             };
 
             treesitter = {
@@ -59,33 +79,23 @@ in
             };
 
             languages = {
-              enableFormat = true;
-              enableTreesitter = true;
-              enableExtraDiagnostics = true;
+              nix.enable = true;
+              python.enable = true;
+              clang.enable = true;
+            };
 
-              nix = {
-                enable = true;
-
-                format = {
-                  enable = true;
-                  package = pkgs.nixfmt-rfc-style;
-                  type = "nixfmt";
+            formatter.conform-nvim = {
+              enable = true;
+              setupOpts = {
+                formatters_by_ft = {
+                  nix = [ "nixfmt-rfc-style" ];
                 };
-
-                lsp = {
-                  package = pkgs.nixd;
-                  server = "nixd";
-                  options = lib.mkIf (dots != null) {
-                    nixos = {
-                      expr = ''(builtins.getFlake "${dots}").nixosConfigurations."QFrame13".options'';
-                    };
-                    home-manager = {
-                      expr = ''(builtins.getFlake "${dots}").homeConfigurations."QFrame13".options'';
-                    };
+                formatters = {
+                  "nixfmt-rfc-style" = {
+                    command = "${lib.getExe pkgs.nixfmt-rfc-style}";
                   };
                 };
               };
-              python.enable = true;
             };
 
             autopairs.nvim-autopairs.enable = true;

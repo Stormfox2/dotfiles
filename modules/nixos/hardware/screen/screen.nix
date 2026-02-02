@@ -2,6 +2,7 @@
   lib,
   config,
   user,
+  pkgs,
   ...
 }:
 
@@ -11,6 +12,8 @@ let
 in
 {
   config = mkIf cfg.enable {
+    services.hardware.bolt.enable = true;
+
     programs.light = {
       enable = true;
       brightnessKeys = {

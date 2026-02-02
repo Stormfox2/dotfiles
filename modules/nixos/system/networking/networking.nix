@@ -24,6 +24,11 @@ in
       networkmanager = {
         enable = cfg.networkManager.enable;
         unmanaged = if (host == "QPC") then [ "enp6s0" ] else [ ];
+
+        # Provides org.freedesktop.NetworkManager.openvpn
+        plugins = with pkgs; [
+          networkmanager-openvpn
+        ];
       };
 
       firewall.enable = false;

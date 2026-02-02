@@ -21,9 +21,13 @@
         ga = "git add .";
         gc = "git commit";
         gp = "git push";
+        gacp = "git add . && git commit && git push";
 
         # NIX
         nhs = "nh os switch ${dots}";
+
+        # New dots
+        mds = "cd ~/projects/qnix/qnix-modules";
 
         # cd aliases
         ".." = "cd ..";

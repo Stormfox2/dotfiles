@@ -11,7 +11,10 @@ let
 in
 {
   config = mkIf cfg.enable {
-    virtualisation.libvirtd.enable = true;
+    virtualisation = {
+      libvirtd.enable = true;
+      spiceUSBRedirection.enable = true;
+    };
     programs.virt-manager.enable = true;
 
     boot = mkIf cfg.passthrough {
@@ -28,7 +31,12 @@ in
       ];
     };
 
-    users.users.${user}.extraGroups = [ "libvirtd" ];
+    users.users.${user}.extraGroups = [
+      "libvirtd"
+      "kvm"
+      "plugdev"
+      "dialout"
+    ];
 
     qnix.persist = {
       root = {

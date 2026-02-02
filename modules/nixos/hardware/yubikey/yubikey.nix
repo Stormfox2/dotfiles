@@ -14,6 +14,13 @@ in
   config = {
     programs.yubikey-touch-detector.enable = true;
 
+    environment.systemPackages = [
+      pkgs.qmk
+      pkgs.via
+    ];
+
+    hardware.keyboard.qmk.enable = true;
+
     services.udev = {
       packages = with pkgs; [
         yubikey-personalization

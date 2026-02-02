@@ -39,6 +39,7 @@ let
         ../modules/nixos # Default NixOS config
         inputs.home-manager.nixosModules.home-manager
         {
+          nix.settings.trusted-users = [ "lcqbraendli" ];
           home-manager = {
             # inherit (args) pkgs;
             useGlobalPkgs = true;
@@ -78,6 +79,7 @@ let
         )
         inputs.impermanence.nixosModules.impermanence # single-use root (/)
         inputs.sops-nix.nixosModules.sops # secret management
+        inputs.nixvirt.nixosModules.default
         inputs.stylix.nixosModules.stylix
         inputs.qnix-pkgs.nixosModules.default
         inputs.nvf.nixosModules.default

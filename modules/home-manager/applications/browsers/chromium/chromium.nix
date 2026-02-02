@@ -68,18 +68,18 @@ in
       "x-scheme-handler/unknown" = "${cfg.version}.desktop";
     };
 
-    wayland.windowManager.hyprland.settings.windowrulev2 = [
-      # do not idle while watching videos
-      "idleinhibit fullscreen,class:^(${cfg.version})$"
-      "idleinhibit focus,class:^(${cfg.version})$,title:(.*)(YouTube)(.*)"
-      # float save dialogs
-      # save as
-      "float,initialClass:^(${cfg.version})$,initialTitle:^(Save File)$"
-      "size <50% <50%,initialClass:^(${cfg.version})$,initialTitle:^(Save File)$"
-      # save image
-      "float,initialClass:^(${cfg.version})$,initialTitle:(.*)(wants to save)$"
-      "size <50% <50%,initialClass:^(${cfg.version})$,initialTitle:(.*)(wants to save)$"
-    ];
+    # wayland.windowManager.hyprland.settings.windowrulev2 = [
+    #   # do not idle while watching videos
+    #   "idleinhibit fullscreen,class:^(${cfg.version})$"
+    #   "idleinhibit focus,class:^(${cfg.version})$,title:(.*)(YouTube)(.*)"
+    #   # float save dialogs
+    #   # save as
+    #   "float,initialClass:^(${cfg.version})$,initialTitle:^(Save File)$"
+    #   "size <50% <50%,initialClass:^(${cfg.version})$,initialTitle:^(Save File)$"
+    #   # save image
+    #   "float,initialClass:^(${cfg.version})$,initialTitle:(.*)(wants to save)$"
+    #   "size <50% <50%,initialClass:^(${cfg.version})$,initialTitle:(.*)(wants to save)$"
+    # ];
 
     qnix.persist = {
       home.directories = [

@@ -59,6 +59,7 @@ in
 
     qnix.applications.editors.jetbrains = {
       clion.enable = true;
+      idea.enable = true;
     };
 
     qnix.persist.home = {

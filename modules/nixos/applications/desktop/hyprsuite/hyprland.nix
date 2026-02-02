@@ -29,6 +29,7 @@ in
       '';
       sessionVariables = {
         NIXOS_OZONE_WL = "1";
+        # AQ_DRM_DEVICES = "/dev/dri/card1";
       };
     };
   };

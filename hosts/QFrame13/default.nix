@@ -22,6 +22,7 @@
       };
 
       virtualisation = {
+        virt-manager.enable = true;
         virtual-box.enable = false;
       };
 

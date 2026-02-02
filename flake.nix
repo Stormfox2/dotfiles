@@ -2,11 +2,17 @@
   description = "QNixOS config v1";
 
   nixConfig = {
-    extra-substituters = [
+    trusted-users = [ "lcqbraendli" ];
+
+    substituters = [
+      "https://cache.nixos.org"
+
       "https://cache.garnix.io"
     ];
 
-    extra-trusted-public-keys = [
+    trusted-public-keys = [
+      "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+
       "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
     ];
   };
@@ -26,6 +32,11 @@
     # Nix-index for unstable
     nix-index-database = {
       url = "github:nix-community/nix-index-database";
+    };
+
+    nixvirt = {
+      url = "https://flakehub.com/f/AshleyYakeley/NixVirt/*.tar.gz";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     # Hardware Optimisation
@@ -144,5 +155,9 @@
     in
     {
       nixosConfigurations = import ./hosts/nixos-hosts.nix commonArgs;
+      apps.${system}.kali-vm = {
+        type = "app";
+        program = "${pkgs.lib.getExe pkgs.libvirt}/bin/virsh start kali-vm";
+      };
     };
 }

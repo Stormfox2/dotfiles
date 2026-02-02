@@ -38,6 +38,7 @@ in
           [
             nvfetcher
             nfs-utils
+            fh
           ]
 
         ];
