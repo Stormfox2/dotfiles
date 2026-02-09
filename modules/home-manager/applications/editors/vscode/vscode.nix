@@ -27,6 +27,7 @@ in
           "files.autoSave" = "onFocusChange";
           "keyboard.dispatch" = "keyCode";
           "redhat.telemetry.enabled" = "false";
+          "qt-qml.qmlls.useQmlImportPathEnvVar" = "true";
         };
         extensions = with pkgs; [
           # RiscV

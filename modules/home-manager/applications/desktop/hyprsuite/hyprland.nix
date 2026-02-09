@@ -87,10 +87,32 @@ in
         systemd.enable = false;
 
         settings = {
+          # --- Workspace rules ---
+          workspace = [
+            "s[true], gapsout:80, gapsin:20"
+          ];
+
+          # --- Decoration ---
+          decoration = {
+            dim_special = 0.7;
+
+            blur = {
+              special = true;
+            };
+          };
+
+          # --- Animations ---
+          animations = {
+            enabled = true;
+            workspace_wraparound = true;
+          };
+
+          # --- Window rules ---
+
           source = [
             "~/.config/hypr/monitors.conf"
             "~/.config/hypr/workspaces.conf"
-            "~/.config/hypr/windowrules.conf"
+            # "~/.config/hypr/windowrules.conf"
           ];
           exec = [
             "hyprctl switchxkblayout all 1"
@@ -115,21 +137,17 @@ in
           # Decoration settings: rounded corners and blur effect.
           decoration = {
             rounding = "10"; # Rounded corners (in pixels)
-            dim_special = "0.6";
             blur = {
               enabled = "true"; # Enable blur effect
               size = "10"; # Blur distance
               passes = "1"; # Number of blur passes
               new_optimizations = "on"; # Use optimized blur method
-              special = "true";
             };
             # (Optional: add drop shadow settings if desired)
           };
 
           # Animation settings: define custom animations using a bezier curve.
           animations = {
-            enabled = "true"; # Enable animations
-            workspace_wraparound = "true";
             animation = [
               "specialWorkspace, 1, 8, default, slidevert"
             ];
@@ -381,19 +399,59 @@ in
             bindingLines
           );
 
-          # windowrule = [
-          #   ########################################
-          #   # 1) Modal / dialog sanity
-          #   ########################################
-          #
-          #   # Modal dialogs: float + center + dim + keep focus
-          #   ''
-          #     windowrule {
-          #       name = modal-dialogs
-          #       match:modal = true
-          #
-          #       float = on
-          #       center = on
+          windowrule = [
+            # --- Modal dialogs ------------------------------------
+            "match:modal true, float on, center on, dim_around on, stay_focused on"
+
+            # --- File pickers & portals ---------------------------
+            "match:title ^(Open File|Save File|Choose File|File Upload|Open|Save As).*$, float on"
+
+            # --- Generic auth prompts -----------------------------
+            "match:title ^(Authentication Required|Permission required).*$, float on, center on, stay_focused on"
+
+            # --- Auth / pinentry / keyring ------------------------
+            "match:class ^(pinentry-|gcr-prompter).*$, stay_focused on"
+            "match:class ^(pinentry-|gcr-prompter).*$, float on, center on, dim_around on"
+
+            # --- Picture-in-Picture -------------------------------
+            "match:title ^(Picture-in-Picture|Picture in picture)$, float on, pin on, keep_aspect_ratio on, no_blur on, no_shadow on, size 30% 30%, move (monitor_w-(window_w+21)) 58"
+
+            # --- Small utility apps ------------------------------
+            "match:class ^(qalculate-gtk|org.gnome.Calculator)$, float on, center on, size 520 620"
+            "match:class ^(org\\.pulseaudio\\.)?pavucontrol$, float on, center on, size 900 650"
+            "match:class ^\\.?blueman-manager(-wrapped)?$, float on, center on, size 900 650"
+            "match:class ^(nm-connection-editor)$, float on, center on, size 900 650"
+
+            # --- Steam quirks -------------------------------------
+            "match:class ^steam$, match:title ^(Friends List|Steam Friends List).*$, float on, size 420 900, move (monitor_w-(window_w+24)) (monitor_h*0.12), focus_on_activate off"
+
+            # --- Tags ---------------------------------------------
+            "match:class ^(ghostty|footclient|kitty|Alacritty)$, tag +term"
+            "match:class ^(code|codium|jetbrains-.*)$, tag +code"
+            "match:class ^(brave-browser|google-chrome)$, tag +browser"
+            "match:class ^(tidal-hifi)$, tag +music"
+            "match:class ^(nemo|thunar)$, tag +files"
+            "match:class ^(Bitwarden)$, tag +passwords"
+            "match:class ^(signal|discord)$, tag +messenger"
+            "match:class ^(obsidian)$, tag +notes"
+            "match:class ^(obs|com\\.obsproject\\.Studio)$, tag +obs"
+
+            # --- Sensitive windows --------------------------------
+            "match:class ^Bitwarden$, no_screen_share on"
+            "match:class ^(pinentry-|gcr-prompter).*$, no_screen_share on"
+
+            # --- Workspace placement ------------------------------
+            "match:tag code, workspace 1"
+            "match:tag term, workspace 2"
+            "match:tag browser, workspace 3"
+            "match:tag files, workspace 9"
+            "match:tag music, workspace special:music"
+            "match:class ^(scratchpad)$, workspace special:scratch"
+            "match:tag messenger, workspace special:messenger"
+            "match:tag notes, workspace special:notes"
+            "match:tag obs, workspace special:obs"
+            "match:class ^(Bitwarden)$, workspace special:secrets"
+          ];
           #       dim_around = on
           #       stay_focused = on
           #     }
